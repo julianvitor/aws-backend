@@ -29,10 +29,10 @@ class Tabela(db.Model):
 def trata_csv(df):
     df['cpf'] = df['cpf'].str.replace('[^0-9]', '')  # remove caracteres não numéricos
     df['cnpj'] = df['cnpj'].str.replace('[^0-9]', '')
-    df['data'] = pd.to_datetime(df['data'], format='%d/%m/%Y').dt.date  # converte a coluna data para o formato yyyy-MM-dd
+    df['data'] = pd.to_datetime(df['data'], format='%d/%m/%Y').dt.date  # converte a coluna para o formato yyyy-MM-dd
     return df
 
-# Rota para receber os parâmetros e processar o arquivo CSV
+# Rota para receber os parâmetros e processar o CSV
 @app.route('/processar-csv', methods=['POST'])
 def processar_csv():
     object_key = request.form['object_key']  # obtém o nome do arquivo no S3

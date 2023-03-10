@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploy de uma aplicação Flask para o Elastic Beanstalk com uma instancia de RDS PostgreSQL 
+Parameters:
+  AppName:
+    Type: String
+    Description: Nome da aplicação
+    Default: MyApp
+  EnvironmentName:
+    Type: String
+    Description: Nome do ambiente Elastic Beanstalk
+    Default: MyEnv
+  DBName:
+    Type: String
+    Description: Nome do banco de dados
+    Default: MyDB
+  DBUser:
+    Type: String
+    Description: Nome do usuario do banco de dados
+    Default: admin
+  DBPassword:
+    Type: String
+    Description: Senha do banco de dados
+    Default: Pa$$w0rd
+    NoEcho: true
+  DBInstanceClass:
+    Type: String
+    Description: Instancia do RDS
+    Default: db.t2.micro
+  DBAllocatedStorage:
+    Type: Number
+    Description: Capacidade de armazenamento da instancia do RDS (gb)
+    Default: 5
+  DBBackupRetentionPeriod:
+    Type: Number
+    Description: Periodo de retenção dos backups em dias
+    Default: 7
+
+Resources:
+  # Cria uma VPC com duas sub-redes uma para a instância RDS e outra para o Elastic Beanstalk.
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: '10.0.0.0/16'
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref 'AppName', '-vpc']]
+  SubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: '10.0.1.0/24'
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref 'AppName', '-subnet-a']]
+  SubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: '10.0.2.0/24'
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref 'AppName', '-subnet-b']]
+
+  # Criar um grupo de segurança para a instância RDS.
+  DBSecurityGroup:
+    Type: AWS::RDS::DBSecurityGroup
+    Properties:
+      DBSecurityGroupIngress:
+        - CIDRIP: '0.0.0.0/0'
+          EC2SecurityGroupId: !Ref EBInstanceSecurityGroup
+          EC2SecurityGroupName: !Ref EBInstanceSecurityGroup
+          EC2SecurityGroupOwnerId: !Ref AWS::AccountId
+      GroupDescription: Allow inbound access to the RDS instance
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref 'AppName', '-db-sg']]  
+
+  # Criar uma instância RDS na sub-rede privada.
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: !Ref DBAllocatedStorage
+      DBName:
+Resources:
+  Database:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: flask-db
+      DBName: <NOME_DO_BANCO>
+      Engine: postgres
+      EngineVersion: 13.3
+      MasterUsername: <USUARIO_DO_BANCO>
+      MasterUserPassword: <SENHA_DO_BANCO>
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      PubliclyAccessible: true
+      DBSubnetGroupName: <NOME_DO_SUBNET_GROUP>
+      VPCSecurityGroups:
+        - <ID_DO_GRUPO_DE_SEGURANCA>
+  
+  FlaskAppBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: <NOME_DO_BUCKET>
+  
+  FlaskApp:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-0c94855ba95c71c99  # Amazon Linux 2 LTS, como sugerido na documentação
+      KeyName: <NOME_DA_CHAVE>
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y python3 git
+          cd /home/ec2-user
+          git clone https://github.com/julianvitor/aws-backend.git
+          cd /home/ec2-user/aws-backend
+          pip install -r requirements.txt
+          sed -i "s/<NOME_DO_BANCO>/${Database.DBName}/g" aws-backend/app.py
+          sed -i "s/<USUARIO_DO_BANCO>/${Database.MasterUsername}/g" aws-backend/app.py
+          sed -i "s/<SENHA_DO_BANCO>/${Database.MasterUserPassword}/g" aws-backend/app.py
+          python3 aws-backend/app.py
+      SecurityGroupIds:
+        - <ID_DO_GRUPO_DE_SEGURANCA>
+      SubnetId: <ID_DA_SUBNET>
