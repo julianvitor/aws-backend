@@ -40,10 +40,11 @@ def processar_csv():
     df = pd.read_csv(obj['Body'])  # CSV para dataframe
     df = trata_csv(df)  # trata as informações do dataframe
     
-    # Insere as informações no banco de dados
+   # Insere as informações no banco de dados
     for index, row in df.iterrows():
-        cursor.execute("INSERT INTO tabela (cpf, cnpj, data) VALUES (%s, %s, %s)", (row['cpf'], row['cnpj'], row['data']))
-    conn.commit()
+        nova_linha = Tabela(cpf=row['cpf'], cnpj=row['cnpj'], data=row['data'])
+        db.session.add(nova_linha)
+    db.session.commit()
     cursor.close()
     conn.close()
     return 'Arquivo CSV processado!'
