@@ -2,7 +2,7 @@
 # Backend interview challenge
 # The following instructions are in Portuguese. If you need them in English, please use Google Translate.
 
-faça login na conta da AWS e acessar o console do CloudFormation.
+faça login na conta da AWS e acesse o console do CloudFormation.
 
 No console, clique no botão "Create Stack" para criar uma nova stack e selecione a opção "Upload a template file" na tela "Create Stack". Em seguida, selecione o arquivo do template CloudFormation (cloundformation.yml) e clique em "Next".
 
